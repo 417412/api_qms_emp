@@ -129,7 +129,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         )
     return {"access_token": "valid_token", "token_type": "bearer"}
 
-@app.post("/createPatients")
+@app.post("/createPatients", status_code=status.HTTP_201_CREATED)
 async def create_patient(
     patient: PatientCreate,
     current_user: str = Depends(get_current_user)
