@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from datetime import datetime, timedelta
 from typing import Optional
 import httpx
@@ -16,14 +16,34 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Email validation regex pattern
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
 # Models
 class PatientCreate(BaseModel):
     lastname: str
     firstname: str
     midname: str
-    bdate: str  # Format: "1990-01-15"
-    cllogin: str
-    # clpassword is dropped as per requirements
+    bdate: str  # Format: "YYYY-MM-DD"
+    cllogin: str  # Must be a valid email
+    clpassword: str
+    
+    @validator('bdate')
+    def validate_bdate(cls, v):
+        """Validate birthdate format YYYY-MM-DD"""
+        try:
+            # Try to parse the date to ensure it's valid
+            datetime.strptime(v, '%Y-%m-%d')
+            return v
+        except ValueError:
+            raise ValueError('bdate must be in YYYY-MM-DD format (e.g., "1990-01-15")')
+    
+    @validator('cllogin')
+    def validate_email(cls, v):
+        """Validate that cllogin is a valid email address"""
+        if not EMAIL_REGEX.match(v):
+            raise ValueError('cllogin must be a valid email address (e.g., "user@example.com")')
+        return v
 
 class Token(BaseModel):
     access_token: str
@@ -43,7 +63,7 @@ HIS_CONSTANTS = {
     "unauthorized": "1"
 }
 
-HIS_ENDPOINT = "http://192.168.156.43/cgi-bin/rest/findPatient"
+HIS_ENDPOINT = "http://192.168.156.118/cgi-bin/rest/findPatient"
 
 # Authentication
 CREDENTIALS = {
@@ -77,6 +97,16 @@ def determine_gender_from_name(firstname: str, midname: str) -> str:
     
     return "male"  # default
 
+def convert_date_format(date_str: str) -> str:
+    """Convert date from YYYY-MM-DD to DD.MM.YYYY format"""
+    try:
+        # Parse the input date
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        # Return in DD.MM.YYYY format
+        return date_obj.strftime('%d.%m.%Y')
+    except ValueError as e:
+        raise ValueError(f"Invalid date format: {date_str}. Expected YYYY-MM-DD")
+
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     # Simple token validation (in production, use proper JWT)
     if token != "valid_token":
@@ -107,6 +137,15 @@ async def create_patient(
     # Determine gender from Russian name
     gender = determine_gender_from_name(patient.firstname, patient.midname)
     
+    # Convert birthdate from YYYY-MM-DD to DD.MM.YYYY
+    try:
+        formatted_bdate = convert_date_format(patient.bdate)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
     # Transform to HIS API format
     his_payload = {
         "action": "create",
@@ -114,10 +153,10 @@ async def create_patient(
             "pF": patient.lastname,
             "pG": patient.firstname,
             "pH": patient.midname,
-            "pI": patient.bdate,
+            "pI": formatted_bdate,  # Now in DD.MM.YYYY format
             "pJ": gender,
             "pT": HIS_CONSTANTS["pT"],
-            "email": patient.cllogin,
+            "email": patient.cllogin,  # Already validated as email
             "ru3": HIS_CONSTANTS["ru3"]
         },
         "apikey": HIS_CONSTANTS["apikey"],
