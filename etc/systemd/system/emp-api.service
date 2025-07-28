@@ -7,7 +7,7 @@ Wants=network.target
 Type=exec
 User=www-data
 Group=www-data
-WorkingDirectory=/opt/emp_api
+WorkingDirectory=/opt/emp_api/api_qms_emp
 Environment=PATH=/usr/bin:/bin
 ExecStart=/usr/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
 ExecReload=/bin/kill -HUP $MAINPID
@@ -22,7 +22,7 @@ SyslogIdentifier=emp-api
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
-ReadWritePaths=/opt/emp_api
+ReadWritePaths=/opt/emp_api/api_qms_emp
 ProtectHome=yes
 
 [Install]
