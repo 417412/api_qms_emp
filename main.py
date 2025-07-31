@@ -63,7 +63,8 @@ HIS_CONSTANTS = {
     "unauthorized": "1"
 }
 
-HIS_ENDPOINT = "http://192.168.156.118/cgi-bin/rest/findPatient"
+HIS_ENDPOINT = "http://192.168.156.43/cgi-bin/rest/findPatient"
+PCODE_ENDPOINT = "http://192.168.156.43/cgi-bin/pBforqqc"
 
 # Authentication
 CREDENTIALS = {
@@ -106,6 +107,25 @@ def convert_date_format(date_str: str) -> str:
         return date_obj.strftime('%d.%m.%Y')
     except ValueError as e:
         raise ValueError(f"Invalid date format: {date_str}. Expected YYYY-MM-DD")
+
+async def get_pcode_from_qqc153(qqc153: str) -> str:
+    """Get pcode from HIS using qqc153"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{PCODE_ENDPOINT}?arg={qqc153}")
+            response.raise_for_status()
+            # Return the plaintext response, stripped of whitespace
+            return response.text.strip()
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Error connecting to pBforqqc service: {str(e)}"
+            )
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"pBforqqc service error: {e.response.text}"
+            )
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     # Simple token validation (in production, use proper JWT)
@@ -171,7 +191,20 @@ async def create_patient(
         try:
             response = await client.post(HIS_ENDPOINT, json=his_payload)
             response.raise_for_status()
-            return response.json()
+            his_response = response.json()
+            
+            # Check if response is successful and contains qqc153
+            if his_response.get("success") and "data" in his_response and "qqc153" in his_response["data"]:
+                # Get the special pcode using qqc153
+                qqc153_value = his_response["data"]["qqc153"]
+                pcode = await get_pcode_from_qqc153(qqc153_value)
+                
+                # Replace qqc153 with pcode in the response
+                his_response["data"]["pcode"] = pcode
+                del his_response["data"]["qqc153"]
+            
+            return his_response
+            
         except httpx.RequestError as e:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
