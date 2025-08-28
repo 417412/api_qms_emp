@@ -226,4 +226,11 @@ async def update_patient_credentials(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=10443,
+        ssl_keyfile="/path/to/your/private.key",
+        ssl_certfile="/path/to/your/certificate.crt",
+        ssl_ca_certs="/path/to/your/chain.crt"  # Optional: if you have a certificate chain
+    )
