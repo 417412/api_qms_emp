@@ -63,8 +63,8 @@ HIS_CONSTANTS = {
     "unauthorized": "1"
 }
 
-HIS_ENDPOINT = "http://192.168.156.43/cgi-bin/rest/findPatient"
-PCODE_ENDPOINT = "http://192.168.156.43/cgi-bin/pBforqqc"
+HIS_ENDPOINT = "http://192.168.156.118/cgi-bin/rest/findPatient"
+PCODE_ENDPOINT = "http://192.168.156.118/cgi-bin/pBforqqc"
 
 # Authentication
 CREDENTIALS = {
