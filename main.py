@@ -112,7 +112,7 @@ async def get_pcode_from_qqc153(qqc153: str) -> str:
     """Get pcode from HIS using qqc153"""
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(f"{PCODE_ENDPOINT}?arg={qqc153}")
+            response = await client.get(f"{PCODE_ENDPOINT}?var={qqc153}")
             response.raise_for_status()
             # Return the plaintext response, stripped of whitespace
             return response.text.strip()
