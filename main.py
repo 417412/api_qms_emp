@@ -149,6 +149,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         )
     return {"access_token": "valid_token", "token_type": "bearer"}
 
+class PatientCreateResponse(BaseModel):
+    pcode: str
+    fullname: str
+    message: str
+
 @app.post("/createPatients", status_code=status.HTTP_201_CREATED)
 async def create_patient(
     patient: PatientCreate,
@@ -199,11 +204,20 @@ async def create_patient(
                 qqc153_value = his_response["data"]["qqc153"]
                 pcode = await get_pcode_from_qqc153(qqc153_value)
                 
-                # Replace qqc153 with pcode in the response
-                his_response["data"]["pcode"] = pcode
-                del his_response["data"]["qqc153"]
-            
-            return his_response
+                # Create the new response format
+                full_name = f"{patient.lastname} {patient.firstname} {patient.midname}"
+                
+                return PatientCreateResponse(
+                    pcode=pcode,
+                    fullname=full_name,
+                    message="Patient created successfully"
+                )
+            else:
+                # Handle case where HIS response doesn't have expected structure
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Unexpected response from HIS system"
+                )
             
         except httpx.RequestError as e:
             raise HTTPException(
@@ -215,7 +229,7 @@ async def create_patient(
                 status_code=e.response.status_code,
                 detail=f"HIS system error: {e.response.text}"
             )
-
+        
 @app.put("/updatePatients/{pcode}/credentials", response_model=PatientUpdateResponse)
 async def update_patient_credentials(
     pcode: str,
