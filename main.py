@@ -230,7 +230,6 @@ if __name__ == "__main__":
         app, 
         host="0.0.0.0", 
         port=10443,
-        ssl_keyfile="/path/to/your/private.key",
-        ssl_certfile="/path/to/your/certificate.crt",
-        ssl_ca_certs="/path/to/your/chain.crt"  # Optional: if you have a certificate chain
+        ssl_keyfile="/opt/emp_api/api_qms_emp/etc/ssl/hd26.key",
+        ssl_certfile="/opt/emp_api/api_qms_emp/etc/ssl/hd26.crt"
     )
