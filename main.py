@@ -81,9 +81,9 @@ def determine_gender_from_name(firstname: str, midname: str) -> str:
     # Check patronymic (middle name) first as it's more reliable
     if midname:
         if midname.endswith(('ич', 'ович', 'евич', 'ьич')):
-            return "male"
+            return "Мужской"
         elif midname.endswith(('на', 'овна', 'евна', 'ична')):
-            return "female"
+            return "Женский"
     
     # Check first name endings
     if firstname:
@@ -92,11 +92,11 @@ def determine_gender_from_name(firstname: str, midname: str) -> str:
             # Most female names end with these
             common_male_exceptions = ['илья', 'никита', 'данила']
             if firstname_lower not in common_male_exceptions:
-                return "female"
+                return "Женский"
         else:
-            return "male"
+            return "Мужской"
     
-    return "male"  # default
+    return "Мужской"  # default
 
 def convert_date_format(date_str: str) -> str:
     """Convert date from YYYY-MM-DD to DD.MM.YYYY format"""
